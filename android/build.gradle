@@ -1,0 +1,89 @@
+group 'com.devnation.helix_timex'
+version '1.0'
+
+buildscript {
+
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.0.4'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+
+
+    compileSdkVersion 31
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+
+        minSdkVersion 19
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+repositories {
+
+
+
+}
+
+
+
+
+
+
+
+dependencies {
+   // implementation files('C:\\flutter\\bin\\cache\\artifacts\\engine\\android-x64\\flutter.jar')
+
+    //noinspection GradleCompatible
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'org.jetbrains:annotations:15.0'
+    // implementation fileTree(dir: 'C:\\Users\\Admin\\Downloads\\CRPBandSDK-1.4.2\\CRPBandSDK', include: ['*.aar', '*.jar'], exclude: [])
+
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+
+     implementation files('libs/crpblelib.jar')
+   // implementation project(":crpblelib-1.4.2")
+
+//    compileOnly fileTree(include: ['*.aar'], dir: 'libs')
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+
+
+    //noinspection GradleCompatible,GradleCompatible
+    implementation 'com.android.support:recyclerview-v7:28.0.0'
+
+
+
+
+
+}
