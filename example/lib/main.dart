@@ -33,6 +33,7 @@ class _MyAppState extends State<MyApp> {
   String spo2='';
   String sis='';
   String dis='';
+  late Timer _timer;
 
 
 
@@ -59,6 +60,11 @@ class _MyAppState extends State<MyApp> {
 
     timex.getConnectionStateStream.listen((event) {
 
+
+      // if(event.connectionState==TimexConnectionState.connected){
+      //   timex.measureSpo2();
+      // }
+
       print('My Connection State'+event.connectionState.toString());
       conState=event.connectionState!;
       setState(() {
@@ -72,7 +78,7 @@ class _MyAppState extends State<MyApp> {
 
 
     timex.getHeartRateStream.listen((event) {
-
+     // timex.measureSpo2();
       print('My Heart Rate'+event.toString());
       heartRate=event.toString();
       setState(() {
@@ -83,6 +89,7 @@ class _MyAppState extends State<MyApp> {
     timex.getSpo2Stream.listen((event) {
 
       print('My SpO2'+event.toString());
+     // timex.measureBloodPressure();
       spo2=event.toString();
       setState(() {
 
@@ -90,7 +97,7 @@ class _MyAppState extends State<MyApp> {
     });
 
     timex.getBloodPressureStream.listen((event) {
-
+     // timex.measureHeartRate();
       print('My Blood Pressure'+event.toString());
       sis=event['sbp'].toString();
       dis=event['dbp'].toString();
@@ -101,6 +108,17 @@ class _MyAppState extends State<MyApp> {
 
 
 
+
+
+  }
+
+
+
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
 
   }
 
@@ -144,10 +162,51 @@ class _MyAppState extends State<MyApp> {
                         }, child: const Text('DisConnect')),
 
 
-                        Text('Heart Rate: '+heartRate.toString()),
-                        Text('Spo2: '+spo2.toString()),
-                        Text('Sis BP: '+sis.toString()),
-                        Text('Dis BP: '+dis.toString()),
+                        TextButton(onPressed: (){
+
+                          timex.measureDynamicRate();
+                        }, child: Text('Measure Dynamic')),
+
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Heart Rate: '+heartRate.toString()),
+
+                            TextButton(onPressed: (){
+
+                              timex.measureHeartRate();
+                            }, child: Text('Measure')),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Spo2: '+spo2.toString()),
+
+                            TextButton(onPressed: (){
+
+                              timex.measureSpo2();
+                            }, child: Text('Measure')),
+                          ],
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Column(
+                              children: [
+                                Text('Sis BP: '+sis.toString()),
+                                Text('Dis BP: '+dis.toString()),
+                              ],
+                            ),
+
+                            TextButton(onPressed: (){
+
+                              timex.measureBloodPressure();
+                            }, child: Text('Measure')),
+                          ],
+                        ),
+
 
 
                       ],

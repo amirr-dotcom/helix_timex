@@ -54,6 +54,29 @@ class HelixTimex {
   }
 
 
+
+  void measureHeartRate() async{
+    await _channel.invokeMethod('measureHeartRate');
+  }
+
+
+  void measureBloodPressure() async{
+    await _channel.invokeMethod('measureBloodPressure');
+  }
+
+
+  void measureSpo2() async{
+    await _channel.invokeMethod('measureSpo2');
+  }
+
+  void measureDynamicRate() async{
+    await _channel.invokeMethod('measureDynamicRate');
+  }
+
+
+
+
+
   void connect({
     required String macAddress,
     required String deviceName,

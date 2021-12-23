@@ -262,7 +262,42 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
             } catch (Exception ex) {
                 result.error("1", ex.getMessage(), ex.getStackTrace());
             }
-        } else {
+        }
+        else if (call.method.equals("measureDynamicRate")) {
+            try {
+                measureDynamicRate();
+                result.success(1);
+            } catch (Exception ex) {
+                result.error("1", ex.getMessage(), ex.getStackTrace());
+            }
+        }
+
+        else if (call.method.equals("measureHeartRate")) {
+            try {
+                measureHeartRate();
+                result.success(1);
+            } catch (Exception ex) {
+                result.error("1", ex.getMessage(), ex.getStackTrace());
+            }
+        }
+        else if (call.method.equals("measureBloodPressure")) {
+            try {
+                measureBloodPressure();
+                result.success(1);
+            } catch (Exception ex) {
+                result.error("1", ex.getMessage(), ex.getStackTrace());
+            }
+        }
+        else if (call.method.equals("measureSpo2")) {
+            try {
+                measureSpo2();
+                result.success(1);
+            } catch (Exception ex) {
+                result.error("1", ex.getMessage(), ex.getStackTrace());
+            }
+        }
+
+        else {
             result.notImplemented();
         }
     }
@@ -341,17 +376,17 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
                 }});
 
 
-//            switch (newState) {
-//                case CRPBleConnectionStateListener.STATE_CONNECTED:
-//
-//                    break;
-//                case CRPBleConnectionStateListener.STATE_CONNECTING:
-//
-//                    break;
-//                case CRPBleConnectionStateListener.STATE_DISCONNECTED:
-//
-//                    break;
-//            }
+            switch (newState) {
+                case CRPBleConnectionStateListener.STATE_CONNECTED:
+                    testSet();
+                    break;
+                case CRPBleConnectionStateListener.STATE_CONNECTING:
+
+                    break;
+                case CRPBleConnectionStateListener.STATE_DISCONNECTED:
+
+                    break;
+            }
 
         });
 
@@ -362,11 +397,44 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
         mBleConnection.setECGChangeListener(mECGChangeListener, CRPEcgMeasureType.TYHX);
         mBleConnection.setStepsCategoryListener(mStepsCategoryChangeListener);
 
+
+    }
+
+    private void testSet() {
+        Log.d("TAG", "testSet");
+        mBleConnection.syncTime();
+    }
+
+
+    void measureDynamicRate(){
+        if (mBleConnection != null) {
+            mBleConnection.enableTimingMeasureHeartRate(1);
+        }
+    }
+
+
+    void measureHeartRate(){
+        if (mBleConnection != null) {
+            mBleConnection.startMeasureOnceHeartRate();
+        }
+    }
+
+    void measureBloodPressure(){
+        if (mBleConnection != null) {
+            mBleConnection.startMeasureBloodPressure();
+        }
+    }
+
+    void measureSpo2(){
+        if (mBleConnection != null) {
+            mBleConnection.startMeasureBloodOxygen();
+        }
     }
 
 
 
     void disConnectDevice(){
+
         if (mBleDevice != null) {
             mBleDevice.disconnect();
         }
