@@ -258,8 +258,8 @@ public class DeviceActivity extends AppCompatActivity implements View.OnClickLis
             Log.d(TAG, "onFindPhoneComplete");
         }
     };
-    
-    
+
+
 
     void updateConnectState(final int state) {
         if (state < 0) {
