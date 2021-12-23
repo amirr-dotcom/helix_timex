@@ -37,6 +37,18 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import com.crrepa.ble.CRPBleClient;
+import com.crrepa.ble.conn.CRPBleConnection;
+import com.crrepa.ble.conn.CRPBleDevice;
+import com.crrepa.ble.conn.bean.CRPHeartRateInfo;
+import com.crrepa.ble.conn.bean.CRPMovementHeartRateInfo;
+import com.crrepa.ble.conn.listener.CRPBleConnectionStateListener;
+import com.crrepa.ble.conn.listener.CRPBleECGChangeListener;
+import com.crrepa.ble.conn.listener.CRPBloodOxygenChangeListener;
+import com.crrepa.ble.conn.listener.CRPBloodPressureChangeListener;
+import com.crrepa.ble.conn.listener.CRPFindPhoneListener;
+import com.crrepa.ble.conn.listener.CRPHeartRateChangeListener;
+import com.crrepa.ble.conn.listener.CRPStepsCategoryChangeListener;
+import com.crrepa.ble.conn.type.CRPEcgMeasureType;
 import com.crrepa.ble.scan.bean.CRPScanDevice;
 import com.crrepa.ble.scan.callback.CRPScanCallback;
 
@@ -48,7 +60,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.EventChannel;
@@ -67,11 +82,15 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
 
 
     private ScanResultsAdapter mResultsAdapter;
+    private CRPBleClient mBleClient=CRPBleClient.create(this);
+    String macAdd="";
+    CRPBleDevice mBleDevice;
+    CRPBleConnection mBleConnection;
 
 
 
 
-
+    private Handler handler;
 
 
 
@@ -79,8 +98,17 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
     private boolean mScanState = false;;
 
 
-    private EventChannel detectDataEventChannel;
-    private EventChannel.EventSink detectDataSink;
+    private EventChannel heartRateEventChannel;
+    private EventChannel.EventSink heartRateDataSink;
+
+    private EventChannel spo2EventChannel;
+    private EventChannel.EventSink spo2DataSink;
+
+    private EventChannel bloodPressureEventChannel;
+    private EventChannel.EventSink bloodPressureDataSink;
+
+    private EventChannel deviceFoundEventChannel;
+    private EventChannel.EventSink deviceFoundSink;
 
 
     private EventChannel scanningState;
@@ -97,18 +125,60 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
 
 
         //  synth = new Synth();
+        handler = new Handler(Looper.getMainLooper());
 
-
-        detectDataEventChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), "helix_timex_detect_data");
-        detectDataEventChannel.setStreamHandler(new EventChannel.StreamHandler() {
+        heartRateEventChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), "helix_timex_heartRate");
+        heartRateEventChannel.setStreamHandler(new EventChannel.StreamHandler() {
             @Override
             public void onListen(Object listener, EventChannel.EventSink eventSink) {
-                detectDataSink = eventSink;
+                heartRateDataSink = eventSink;
             }
 
             @Override
             public void onCancel(Object listener) {
-                detectDataSink = null;
+                heartRateDataSink = null;
+            }
+        });
+
+        spo2EventChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), "helix_timex_spo2");
+        spo2EventChannel.setStreamHandler(new EventChannel.StreamHandler() {
+            @Override
+            public void onListen(Object listener, EventChannel.EventSink eventSink) {
+                spo2DataSink = eventSink;
+            }
+
+            @Override
+            public void onCancel(Object listener) {
+                spo2DataSink = null;
+            }
+        });
+
+        bloodPressureEventChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), "helix_timex_bloodPressure");
+        bloodPressureEventChannel.setStreamHandler(new EventChannel.StreamHandler() {
+            @Override
+            public void onListen(Object listener, EventChannel.EventSink eventSink) {
+                bloodPressureDataSink = eventSink;
+            }
+
+            @Override
+            public void onCancel(Object listener) {
+                bloodPressureDataSink = null;
+            }
+        });
+
+
+        deviceFoundEventChannel = new EventChannel(flutterPluginBinding.getBinaryMessenger(), "helix_timex_device_found_stream");
+        deviceFoundEventChannel.setStreamHandler(new EventChannel.StreamHandler() {
+            @Override
+            public void onListen(Object listener, EventChannel.EventSink eventSink) {
+
+                deviceFoundSink = eventSink;
+
+            }
+
+            @Override
+            public void onCancel(Object listener) {
+                deviceFoundSink = null;
             }
         });
 
@@ -179,8 +249,7 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
         } else if (call.method.equals("disConnect")) {
             try {
 
-                ArrayList arguments = (ArrayList) call.arguments;
-                //  disConnectDevice(arguments.get(0).toString());
+                disConnectDevice();
                 result.success(1);
             } catch (Exception ex) {
                 result.error("1", ex.getMessage(), ex.getStackTrace());
@@ -188,7 +257,7 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
         } else if (call.method.equals("connect")) {
             try {
                 ArrayList arguments = (ArrayList) call.arguments;
-                //  connectOximeter(arguments.get(0).toString(),arguments.get(1).toString());
+                connectDevice(arguments.get(0).toString(),arguments.get(1).toString());
                 result.success(1);
             } catch (Exception ex) {
                 result.error("1", ex.getMessage(), ex.getStackTrace());
@@ -200,9 +269,32 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
 
 
     private void startScan() {
-        boolean success =  CRPBleClient.create(this).scanDevice(new CRPScanCallback() {
+        boolean success =  mBleClient.scanDevice(new CRPScanCallback() {
             @Override
             public void onScanning(final CRPScanDevice device) {
+                if(scanningStateSink!=null){
+                    scanningStateSink.success(true);
+                }
+
+
+                if(device.getDevice().getName()!=null)
+                {
+                    if(device.getDevice().getName().equals("HXW01")){
+                        Map<String, Object> searchResultData = new HashMap<>();
+                        searchResultData.put("macAddress", device.getDevice().getAddress().toString());
+                        searchResultData.put("deviceName", device.getDevice().getName().toString());
+                        macAdd=device.getDevice().getAddress();
+
+                        Log.i("Search Result", searchResultData.toString());
+
+                        if (deviceFoundSink != null) {
+                            deviceFoundSink.success(searchResultData);
+                        }
+                    }
+                }
+
+
+
                 Log.d("TAG", "name: " + device.getDevice().getName());
                 Log.d("TAG", "address: " + device.getDevice().getAddress());
                 if (TextUtils.isEmpty(device.getDevice().getName())) {
@@ -213,6 +305,9 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
 
             @Override
             public void onScanComplete(List<CRPScanDevice> results) {
+                if(scanningStateSink!=null){
+                    scanningStateSink.success(false);
+                }
                 if (mScanState) {
                     mScanState = false;
                 }
@@ -220,13 +315,207 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
         }, SCAN_PERIOD);
         if (success) {
             mScanState = true;
-            mResultsAdapter.clearScanResults();
         }
     }
 
     private void cancelScan() {
-         SampleApplication.getBleClient(this).cancelScan();
+         mBleClient.cancelScan();
     }
+
+
+
+
+    void connectDevice(String macAddress,String deviceName) {
+        mBleDevice=mBleClient.getBleDevice(macAddress);
+
+        mBleConnection = mBleDevice.connect();
+        mBleConnection.setConnectionStateListener(newState -> {
+            Log.d("TAG", "onConnectionStateChangeYes: " + newState);
+            int state = -1;
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if(connectionStateSink!=null){
+                        connectionStateSink.success(newState);
+                    }
+                }});
+
+
+//            switch (newState) {
+//                case CRPBleConnectionStateListener.STATE_CONNECTED:
+//
+//                    break;
+//                case CRPBleConnectionStateListener.STATE_CONNECTING:
+//
+//                    break;
+//                case CRPBleConnectionStateListener.STATE_DISCONNECTED:
+//
+//                    break;
+//            }
+
+        });
+
+        mBleConnection.setHeartRateChangeListener(mHeartRateChangListener);
+        mBleConnection.setBloodPressureChangeListener(mBloodPressureChangeListener);
+        mBleConnection.setBloodOxygenChangeListener(mBloodOxygenChangeListener);
+        mBleConnection.setFindPhoneListener(mFindPhoneListener);
+        mBleConnection.setECGChangeListener(mECGChangeListener, CRPEcgMeasureType.TYHX);
+        mBleConnection.setStepsCategoryListener(mStepsCategoryChangeListener);
+
+    }
+
+
+
+    void disConnectDevice(){
+        if (mBleDevice != null) {
+            mBleDevice.disconnect();
+        }
+    }
+
+
+
+    CRPHeartRateChangeListener mHeartRateChangListener = new CRPHeartRateChangeListener() {
+        @Override
+        public void onMeasuring(int rate) {
+            Log.d("TAG", "onMeasuring: " + rate);;
+        }
+
+        @Override
+        public void onOnceMeasureComplete(int rate) {
+            Log.d("TAG", "onOnceMeasureComplete: " + rate);
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (heartRateDataSink != null) {
+                        heartRateDataSink.success(rate);
+                    }
+
+                }});
+
+        }
+
+        @Override
+        public void onMeasureComplete(CRPHeartRateInfo info) {
+            if (info != null && info.getMeasureData() != null) {
+                for (Integer integer : info.getMeasureData()) {
+                    Log.d("TAG", "onMeasureComplete: " + integer);
+                }
+            }
+        }
+
+        @Override
+        public void on24HourMeasureResult(CRPHeartRateInfo info) {
+            List<Integer> data = info.getMeasureData();
+            Log.d("TAG", "on24HourMeasureResult: " + data.size());
+        }
+
+        @Override
+        public void onMovementMeasureResult(List<CRPMovementHeartRateInfo> list) {
+            for (CRPMovementHeartRateInfo info : list) {
+                if (info != null) {
+                    Log.d("TAG", "onMovementMeasureResult: " + info.getStartTime());
+                }
+            }
+        }
+
+    };
+
+    CRPBloodPressureChangeListener mBloodPressureChangeListener = new CRPBloodPressureChangeListener() {
+        @Override
+        public void onBloodPressureChange(int sbp, int dbp) {
+            Log.d("TAG", "sbp: " + sbp + ",dbp: " + dbp);
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Map<String, Object> discoveryResult = new HashMap<>();
+                    discoveryResult.put("sbp", sbp);
+                    discoveryResult.put("dbp", dbp);
+
+                    Log.i("Detected data", discoveryResult.toString());
+
+                    if (bloodPressureDataSink != null) {
+                        bloodPressureDataSink.success(discoveryResult);
+                    }
+
+
+                }});
+
+
+
+
+
+        }
+    };
+
+    CRPBloodOxygenChangeListener mBloodOxygenChangeListener = new CRPBloodOxygenChangeListener() {
+        @Override
+        public void onBloodOxygenChange(int bloodOxygen) {
+            Log.d("TAG", "Blood Oxygen: "  +bloodOxygen);
+
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (spo2DataSink != null) {
+                        spo2DataSink.success(bloodOxygen);
+                    }
+
+                }});
+
+
+        }
+    };
+
+    CRPBleECGChangeListener mECGChangeListener = new CRPBleECGChangeListener() {
+        @Override
+        public void onECGChange(int[] ecg) {
+            for (int i = 0; i < ecg.length; i++) {
+                Log.d("TAG", "ecg: " + ecg[i]);
+            }
+        }
+
+        @Override
+        public void onMeasureComplete() {
+            Log.d("TAG", "onMeasureComplete");
+        }
+
+        @Override
+        public void onTransCpmplete(Date date) {
+            Log.d("TAG", "onTransCpmplete");
+        }
+
+        @Override
+        public void onCancel() {
+            Log.d("TAG", "onCancel");
+        }
+
+        @Override
+        public void onFail() {
+            Log.d("TAG", "onFail");
+        }
+    };
+
+
+    CRPFindPhoneListener mFindPhoneListener = new CRPFindPhoneListener() {
+        @Override
+        public void onFindPhone() {
+            Log.d("TAG", "onFindPhone");
+        }
+
+        @Override
+        public void onFindPhoneComplete() {
+            Log.d("TAG", "onFindPhoneComplete");
+        }
+    };
+
+    CRPStepsCategoryChangeListener mStepsCategoryChangeListener = info -> {
+        List<Integer> stepsList = info.getStepsList();
+        Log.d("TAG", "onStepsCategoryChange size: " + stepsList.size());
+        for (int i = 0; i < stepsList.size(); i++) {
+            Log.d("TAG", "onStepsCategoryChange: " + stepsList.get(i).intValue());
+        }
+    };
+    
+    
 
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {

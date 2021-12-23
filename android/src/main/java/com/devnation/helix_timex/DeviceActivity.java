@@ -100,6 +100,7 @@ public class DeviceActivity extends AppCompatActivity implements View.OnClickLis
         mBleConnection.setConnectionStateListener(newState -> {
             Log.d(TAG, "onConnectionStateChange: " + newState);
             int state = -1;
+
             switch (newState) {
                 case CRPBleConnectionStateListener.STATE_CONNECTED:
                     //state = R.string.connected;
@@ -125,6 +126,7 @@ public class DeviceActivity extends AppCompatActivity implements View.OnClickLis
         mBleConnection.setFindPhoneListener(mFindPhoneListener);
         mBleConnection.setECGChangeListener(mECGChangeListener, CRPEcgMeasureType.TYHX);
         mBleConnection.setStepsCategoryListener(mStepsCategoryChangeListener);
+
     }
 
     private void testSet() {
@@ -256,6 +258,8 @@ public class DeviceActivity extends AppCompatActivity implements View.OnClickLis
             Log.d(TAG, "onFindPhoneComplete");
         }
     };
+    
+    
 
     void updateConnectState(final int state) {
         if (state < 0) {

@@ -1,6 +1,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 
@@ -9,19 +10,25 @@ class HelixTimex {
 
 
   static const MethodChannel _channel = MethodChannel('helix_timex');
-  static const EventChannel _detectDataStream = EventChannel('helix_timex_detect_data');
   static const EventChannel _deviceFoundStream = EventChannel('helix_timex_device_found_stream');
   static const EventChannel _scanningStateStream =  EventChannel('helix_timex_device_scanning_state');
   static const EventChannel _connectionStateStream =  EventChannel('helix_timex_device_connection_state');
 
+  static const EventChannel _heartRateStream =  EventChannel('helix_timex_heartRate');
+  static const EventChannel _spo2Stream =  EventChannel('helix_timex_spo2');
+  static const EventChannel _bloodPressureStream =  EventChannel('helix_timex_bloodPressure');
+
 
   Stream get getScanningStateStream => _scanningStateStream.receiveBroadcastStream();
-  Stream get getConnectionStateStream => _connectionStateStream.receiveBroadcastStream();
+  Stream<ConnectionStateModal> get getConnectionStateStream => _connectionStateStream.receiveBroadcastStream().map((element) => ConnectionStateModal.fromString(element));
 
-
-
-  Stream<OximeterData> get detectedDataStream => _detectDataStream.receiveBroadcastStream().map((element) => OximeterData.fromJson(element));
   Stream<DeviceData> get deviecFoundStream => _deviceFoundStream.receiveBroadcastStream().map((element) => DeviceData.fromJson(element));
+
+
+
+  Stream get getHeartRateStream => _heartRateStream.receiveBroadcastStream();
+  Stream get getSpo2Stream => _spo2Stream.receiveBroadcastStream();
+  Stream get getBloodPressureStream => _bloodPressureStream.receiveBroadcastStream();
 
   // listenToData(){
   //   _detectDataStream.receiveBroadcastStream().listen((event) {
@@ -61,12 +68,9 @@ class HelixTimex {
     }
   }
 
-  void disConnect({
-    required String macAddress,
-  }
-      ) async{
+  void disConnect() async{
     try{
-      await _channel.invokeMethod('disConnect',[macAddress]);
+      await _channel.invokeMethod('disConnect',);
     }
     catch(e) {
       print(e);
@@ -79,30 +83,6 @@ class HelixTimex {
 
 }
 
-
-class OximeterData {
-  int? heartRate;
-  int? hrv;
-  int? spo2;
-  double? perfusionIndex;
-
-  OximeterData(
-      {
-        this.heartRate,
-        this.hrv,
-        this.spo2,
-        this.perfusionIndex,
-      });
-
-  factory OximeterData.fromJson(json) => OximeterData(
-    heartRate: (json['heart']??00) as int,
-    hrv: (json['hrv']?? 00) as int,
-    spo2: (json['spo2']?? 00) as int,
-    perfusionIndex: (json['perfusionIndex']?? 0.0) as double,
-  );
-
-
-}
 
 
 class DeviceData {
@@ -119,6 +99,42 @@ class DeviceData {
   factory DeviceData.fromJson(json) => DeviceData(
     macAddress: (json['macAddress']??'') as String,
     deviceName: (json['deviceName']??'') as String,
+
+  );
+
+
+}
+
+enum TimexConnectionState{
+  connected,
+  connecting,
+  disconnected,
+}
+
+class ConnectionStateModal {
+  TimexConnectionState? connectionState;
+
+  ConnectionStateModal(
+      {
+        this.connectionState,
+
+      });
+
+  factory ConnectionStateModal.fromString(string) => ConnectionStateModal(
+    connectionState:
+
+    string==null?
+    TimexConnectionState.disconnected
+        :
+    string==2?
+    TimexConnectionState.connected:
+    string==1?
+    TimexConnectionState.connecting:
+    string==0?
+    TimexConnectionState.disconnected:
+
+
+        TimexConnectionState.disconnected,
 
   );
 

@@ -61,8 +61,7 @@ flutter {
 
 dependencies {
     //  implementation files('C:\\flutter\\bin\\cache\\artifacts\\engine\\android-x64\\flutter.jar')
-    compileOnly fileTree(include: ['*.aar'], dir: 'libs')
-    compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+
 
 
 
