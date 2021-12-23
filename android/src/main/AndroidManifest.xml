@@ -15,8 +15,7 @@
 
 
     <application
-        android:name=".SampleApplication"
-        >
+      >
 
 
 

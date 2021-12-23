@@ -75,14 +75,16 @@ import io.flutter.plugin.common.MethodChannel.Result;
 /**
  * HelixTimexPlugin
  */
-public class HelixTimexPlugin extends Application implements FlutterPlugin, MethodCallHandler {
+public class HelixTimexPlugin  implements FlutterPlugin, MethodCallHandler {
 
 
     private MethodChannel channel;
 
+    private Context context;
+
 
     private ScanResultsAdapter mResultsAdapter;
-    private CRPBleClient mBleClient=CRPBleClient.create(this);
+    private CRPBleClient mBleClient;
     String macAdd="";
     CRPBleDevice mBleDevice;
     CRPBleConnection mBleConnection;
@@ -120,6 +122,8 @@ public class HelixTimexPlugin extends Application implements FlutterPlugin, Meth
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
+        context= flutterPluginBinding.getApplicationContext();
+        mBleClient=CRPBleClient.create(context);
         channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "helix_timex");
         channel.setMethodCallHandler(this);
 
