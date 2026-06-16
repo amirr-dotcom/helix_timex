@@ -33,7 +33,6 @@ class _MyAppState extends State<MyApp> {
   String spo2='';
   String sis='';
   String dis='';
-  late Timer _timer;
 
 
 
