@@ -1,6 +1,6 @@
 name: helix_timex
 description: A new Flutter project.
-version: 0.0.4
+version: 1.0.0
 homepage: https://github.com/amirr-dotcom/helix_timex
 
 environment:
@@ -29,8 +29,6 @@ flutter:
     platforms:
       android:
         package: com.devnation.helix_timex
-        pluginClass: HelixTimexPlugin
-      ios:
         pluginClass: HelixTimexPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
