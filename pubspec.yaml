@@ -1,5 +1,5 @@
 name: helix_timex
-description: A new Flutter project.
+description: A Flutter plugin to connect and interface with Helix Timex smartwatches (compatible with CRREPA Bluetooth protocols) on Android.
 version: 1.0.0
 homepage: https://github.com/amirr-dotcom/helix_timex
 
