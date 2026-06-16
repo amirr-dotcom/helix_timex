@@ -1,3 +1,7 @@
+## 1.0.1
+
+* Added `isConnected()` method to query connection state dynamically.
+
 ## 1.0.0
 
 * Upgrade SDK constraints to support Dart 3.x and Flutter 3.38+.

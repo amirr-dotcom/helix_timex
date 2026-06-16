@@ -99,10 +99,15 @@ class HelixTimex {
     }
   }
 
-
-
-
-
+  Future<bool> isConnected() async {
+    try {
+      final bool? connected = await _channel.invokeMethod('isConnected');
+      return connected ?? false;
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
 }
 
 

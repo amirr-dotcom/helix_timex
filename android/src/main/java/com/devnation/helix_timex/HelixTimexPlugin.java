@@ -88,6 +88,7 @@ public class HelixTimexPlugin  implements FlutterPlugin, MethodCallHandler {
     String macAdd="";
     CRPBleDevice mBleDevice;
     CRPBleConnection mBleConnection;
+    private int mConnectionState = CRPBleConnectionStateListener.STATE_DISCONNECTED;
 
 
 
@@ -266,6 +267,12 @@ public class HelixTimexPlugin  implements FlutterPlugin, MethodCallHandler {
             } catch (Exception ex) {
                 result.error("1", ex.getMessage(), ex.getStackTrace());
             }
+        } else if (call.method.equals("isConnected")) {
+            try {
+                result.success(mConnectionState == CRPBleConnectionStateListener.STATE_CONNECTED);
+            } catch (Exception ex) {
+                result.error("1", ex.getMessage(), ex.getStackTrace());
+            }
         }
         else if (call.method.equals("measureDynamicRate")) {
             try {
@@ -369,6 +376,7 @@ public class HelixTimexPlugin  implements FlutterPlugin, MethodCallHandler {
 
         mBleConnection = mBleDevice.connect();
         mBleConnection.setConnectionStateListener(newState -> {
+            mConnectionState = newState;
             Log.d("TAG", "onConnectionStateChangeYes: " + newState);
             int state = -1;
             handler.post(new Runnable() {
@@ -438,10 +446,10 @@ public class HelixTimexPlugin  implements FlutterPlugin, MethodCallHandler {
 
 
     void disConnectDevice(){
-
         if (mBleDevice != null) {
             mBleDevice.disconnect();
         }
+        mConnectionState = CRPBleConnectionStateListener.STATE_DISCONNECTED;
     }
 
 
